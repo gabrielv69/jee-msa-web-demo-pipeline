@@ -85,12 +85,34 @@ stages:
               pathToSources: '$(System.DefaultWorkingDirectory)/src/main/java'
             displayName: 'Publicar Cobertura en Azure DevOps'
 
+# ==========================================
+# STAGE 2: QUALITY GATE
+# ==========================================
+  - stage: Quality
+    displayName: 'Quality'
+    dependsOn: CI
+    condition: succeeded()
+  
+    jobs:
+      - job: code_quality
+        displayName: 'Análisis de Calidad'
+  
+        steps:
+          - script: |
+              echo "Ejecutando análisis de calidad del código..."
+              chmod +x gradlew
+              ./gradlew check
+            displayName: 'Validar Calidad'
+  
+          - script: |
+              echo "Quality Gate superado correctamente."
+            displayName: 'Resultado'
   # ==========================================
   # STAGE 2: APROBACIÓN MANUAL (APPROVAL)
   # ==========================================
   - stage: Approval
     displayName: 'Aprobar'
-    dependsOn: CI
+    dependsOn: Quality
     condition: succeeded()
     jobs:
       - job: manual_gate
@@ -150,12 +172,12 @@ stages:
   # ==========================================
   - stage: Notifications
     displayName: 'Notificar'
-    dependsOn: [CI, Approval, CD]
+    dependsOn: [CI, Quality, Approval, CD]
     condition: always()
     jobs:
       - job: send_status_email
         displayName: 'Enviar Reporte'
         steps:
           - script: |
-              echo "Estado final de la ejecución del pipeline construido por Jeferson Villacís: $(Agent.JobStatus)"
+              echo "Estado final de la ejecución del pipeline construido por Gabriel Vivas: $(Agent.JobStatus)"
             displayName: 'Simulación de Envío de Correo Electrónico'
